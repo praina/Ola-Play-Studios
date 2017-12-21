@@ -1,10 +1,17 @@
 package com.example.jackhammer.olaplaystudios;
 
+import android.app.NotificationManager;
+import android.app.PendingIntent;
+import android.app.TaskStackBuilder;
 import android.content.Context;
+import android.content.Intent;
+import android.media.RingtoneManager;
+import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Environment;
 import android.os.Handler;
 import android.os.Looper;
+import android.support.v7.app.NotificationCompat;
 import android.util.Log;
 import android.widget.Toast;
 
@@ -24,10 +31,12 @@ public class DownloadSongs {
     private Context context;
     private String downloadUrl = "", downloadFileName = "";
     private String filepath;
+    private String SongName;
 
     public DownloadSongs(Context ctext,String songName, String dUrl) {
         this.context = ctext;
         this.downloadUrl = dUrl;
+        SongName=songName;
 
         downloadFileName=songName.replaceAll("\\s","");
         filepath = Environment.getExternalStorageDirectory().getPath()+"/Download/"+downloadFileName+".mp3";
@@ -128,8 +137,41 @@ public class DownloadSongs {
                     new Handler(Looper.getMainLooper()).post(new Runnable() {
                         @Override
                         public void run() {
-                            Toast.makeText(context,
-                                    "Download Complete", Toast.LENGTH_SHORT).show();
+//                            Toast.makeText(context,
+//                                    "Download Complete", Toast.LENGTH_SHORT).show();
+
+                            NotificationCompat.Builder mBuilder = new NotificationCompat.Builder(context);
+                            mBuilder.setSmallIcon(R.drawable.ic_file_download);
+                            mBuilder.setContentTitle("Download Complete");
+                            //mBuilder.setContentText();
+                            mBuilder.setStyle(new NotificationCompat.BigTextStyle()
+                                    .bigText(SongName + " has been downloaded at " +
+                                    Environment.getExternalStorageDirectory() + "/"
+                                    + Config.downloadDirectory));
+                            mBuilder.setSound(RingtoneManager
+                                    .getDefaultUri(RingtoneManager.TYPE_NOTIFICATION));
+                            mBuilder.setPriority(NotificationCompat.PRIORITY_HIGH);
+                            mBuilder.setAutoCancel(true);
+
+                            Uri path= Uri.parse(Environment.getExternalStorageDirectory() + "/"
+                                    + Config.downloadDirectory);
+                            Intent resultIntent = new Intent(Intent.ACTION_GET_CONTENT);
+                            resultIntent.setDataAndType(path, "resource/folder");           //or "text/csv" for Other Types**
+
+
+                            TaskStackBuilder stackBuilder = TaskStackBuilder.create(context);
+                            stackBuilder.addParentStack(MainActivity.class);
+
+                            stackBuilder.addNextIntent(resultIntent);
+                            PendingIntent resultPendingIntent = stackBuilder
+                                    .getPendingIntent(0,PendingIntent.FLAG_UPDATE_CURRENT);
+                            mBuilder.setContentIntent(resultPendingIntent);
+
+
+                            NotificationManager mNotificationManager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
+
+                            mNotificationManager.notify(0,mBuilder.build());
+
                         }
                     });
                 }
